@@ -1,0 +1,56 @@
+#!/bin/3proxy
+# {{ ansible_managed }}
+
+# you may use system to execute some external command if proxy starts
+system "echo $(which 3proxy)': Starting 3proxy'"
+
+config /etc/3proxy/3proxy.cfg
+monitor /etc/3proxy/3proxy.cfg
+monitor /etc/3proxy/passwd
+
+# Load users from external file
+users $/etc/3proxy/passwd
+
+# We can configure nservers to avoid unsafe gethostbyname() usage
+{% for ns in proxy_config['nservers'] -%}
+nserver {{ ns }}
+{% endfor %}
+
+# nscache is good to save speed, traffic and bandwidth
+nscache 65536
+
+# Here we can change timeout values
+timeouts {{ proxy_config['timeouts'] }}
+
+# Logging docs: <https://3proxy.org/doc/howtor.html#LOGFORMAT>
+{% if proxy_log == 'file' -%}
+log {{ proxy_log_dir }}/{{ proxy_log_basename }} D
+logformat "L%Y-%m-%d %H:%M:%S %z %N.%p %E %U %C:%c %R:%r %O %I %h %T"
+rotate 15
+archiver gz /bin/gzip %F
+
+{% else -%}
+log /dev/stdout
+logformat "-\""+_G{""time_unix"":%t, ""proxy"":{""type:"":""%N"", ""port"":%p}, ""error"":{""code"":""%E""}, ""auth"":{""user"":""%U""}, ""client"":{""ip"":""%C"", ""port"":%c}, ""server"":{""ip"":""%R"", ""port"":%r}, ""bytes"":{""sent"":%O, ""received"":%I}, ""request"":{""hostname"":""%n""}, ""message"":""%T""}"
+
+{% endif -%}
+
+maxconn {{ proxy_config['maxconn'] }}
+
+# Enable auth with login:password
+auth strong
+
+# Deny access to localhost
+deny * * 127.0.0.1/8
+# Allow everything else
+allow *
+
+proxy -p{{ proxy_config['proxy_port'] }} {{ proxy_config['proxy_args'] }}
+socks -p{{ proxy_config['socks_port'] }} {{ proxy_config['socks_args'] }}
+flush
+
+{% if proxy_config['admin_enable'] -%}
+allow {{ proxy_config['admin_user'] }}
+admin -p{{ proxy_config['admin_port'] }} {{ proxy_config['admin_args'] }}
+flush
+{% endif %}

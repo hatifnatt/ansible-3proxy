@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+# user:TYPE:password or hash
+# TYPE is
+# CL - cleartext password
+# CR - crypt password, only MD5 crypt passwords are supported
+## openssl passwd -1 -salt $(openssl rand -hex 4) yourpassword
+## mycrypt $(openssl rand -hex 4) yourpassword
+# NT - NT-hashed (MD4) passwords in hex, as used in pwdump or SAMBA 
+## mycrypt yourpassword
+# Examples:
+# admin:CL:bigsecret
+# test2:CR:$1$lFDGlder$pLRb4cU2D7GAT58YQvY49.
+# test3:NT:BD7DFBF29A93F93C63CB84790DA00E63
+{% for user in proxy_users -%}
+{{ user }}
+{% endfor %}

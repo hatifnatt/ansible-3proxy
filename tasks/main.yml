@@ -1,0 +1,111 @@
+---
+# tasks file for 3proxy
+- name: Gather os specific variables
+  ansible.builtin.include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "{{ ansible_distribution }}.yml"
+    - default.yml
+  tags: vars
+
+#- set_fact: proxy_config="{{ __proxy_config|combine(proxy_config) }}"
+
+- name: Debian setup tasks
+  ansible.builtin.include_tasks: setup_debian.yml
+  when: ansible_facts['os_family']|lower == 'debian'
+  tags: setup
+
+- name: RedHat setup tasks
+  ansible.builtin.include_tasks: setup_redhat.yml
+  when: ansible_facts['os_family']|lower == 'redhat'
+  tags: setup
+
+- name: Create config directory
+  ansible.builtin.file:
+    path: /etc/3proxy
+    state: directory
+    owner: "{{ proxy_user | string }}"
+    group: "{{ proxy_group | string }}"
+    mode: "0755"
+  tags: files
+
+- name: Create logs directory
+  ansible.builtin.file:
+    path: "{{ proxy_log_dir }}"
+    state: directory
+    owner: "{{ proxy_user | string }}"
+    group: "{{ proxy_group | string }}"
+    mode: "0755"
+  when: proxy_log == "file"
+  tags: files
+
+- name: Register list of existing logs
+  ansible.builtin.find:
+    paths: "{{ proxy_log_dir }}"
+    file_type: file
+    patterns: "*.log*"
+  register: logs_list
+  when: proxy_log == "file"
+  tags: files
+
+- name: Update permissions for existing logs
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: file
+    owner: "{{ proxy_user | string }}"
+    group: "{{ proxy_group | string }}"
+    mode: "0644"
+  loop: "{{ logs_list.files }}"
+  when: proxy_log == "file"
+  tags: files
+
+- name: Create configuration file
+  ansible.builtin.template:
+    src: "{{ proxy_template }}"
+    dest: /etc/3proxy/3proxy.cfg
+    owner: "{{ proxy_user | string }}"
+    group: "{{ proxy_group | string }}"
+    mode: "0644"
+  tags:
+    - files
+    - config
+
+- name: Create passwords file
+  ansible.builtin.template:
+    src: "passwd.j2"
+    dest: /etc/3proxy/passwd
+    owner: nobody
+    group: nogroup
+    mode: "0644"
+  tags:
+    - files
+    - password
+
+# TODO: Get rid of 'network_mode: host' or support different modes
+- name: Run 3proxy container
+  community.docker.docker_container:
+    name: 3proxy
+    container_default_behavior: no_defaults
+    image: 3proxy/3proxy
+    state: started
+    user: "{{ proxy_user }}:{{ proxy_group }}"
+    network_mode: host
+    restart_policy: unless-stopped
+    volumes:
+      - /etc/3proxy:/etc/3proxy:ro
+      - "{{ proxy_log_dir }}:{{ proxy_log_dir }}:rw"
+  tags: docker
+
+## Optional
+# Create 3proxy configuration
+- name: Enable fail2ban 3proxy jail
+  ansible.builtin.template:
+    src: fail2ban_3proxy.conf.j2
+    dest: /etc/fail2ban/jail.d/3proxy.conf
+    mode: "0644"
+  when: proxy_fail2ban_setup
+  notify: restart fail2ban
+  tags: fail2ban
+
+# Setup firewall
+# TBD ... may be

@@ -1,0 +1,42 @@
+---
+# defaults file for 3proxy
+proxy_log: file # or stdout
+proxy_log_dir: /var/log/3proxy
+proxy_log_basename: access.log
+proxy_template: 3proxy.cfg.j2
+# user and group for all files (configs and logs),
+# 3proxy process also will be started on behalf of this user, therefore
+# same user (uid) and group (gid) must be present inside container and on host OS
+# so 65534:65534 is the best option
+proxy_user: 65534 # nobody
+proxy_group: 65534 # nogroup
+proxy_config:
+  nservers:
+    - 1.0.0.1
+    - 1.1.1.1
+    - 8.8.4.4
+    - 8.8.8.8
+  timeouts: 1 5 30 60 180 1800 15 60
+  maxconn: 100
+  proxy_port: 3128
+  # disable NTLM auth (-n), enable anonymouse mode (-a)
+  proxy_args: "-a -n"
+  socks_port: 1080
+  socks_args: ""
+  admin_enable: false
+  admin_user: admin
+  admin_port: 8088
+  # disable NTLM auth (-n)
+  # enable only secure actions like viewing counters are by default (-s)
+  admin_args: "-n -s"
+proxy_users: []
+proxy_docker_py_install: true
+proxy_docker_py_pkg: python3-docker
+proxy_fail2ban_setup: true
+proxy_fail2ban_service_name: fail2ban
+proxy_fail2ban_destemail: ''
+proxy_fail2ban_action: ''
+proxy_fail2ban_findtime: 240
+proxy_fail2ban_bantime: 3600
+proxy_fail2ban_maxretry: 5
+proxy_fail2ban_ignoreip: []

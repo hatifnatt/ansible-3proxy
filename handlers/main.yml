@@ -1,0 +1,7 @@
+---
+# handlers file for 3proxy
+- name: restart fail2ban
+  service:
+    name: "{{ proxy_fail2ban_service_name }}"
+    state: "restarted"
+    sleep: 5

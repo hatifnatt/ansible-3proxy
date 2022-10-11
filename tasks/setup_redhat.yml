@@ -1,0 +1,17 @@
+---
+# Install docker-py package
+- name: Install docker-py package (yum)
+  ansible.builtin.yum:
+    name: "{{ proxy_docker_py_pkg }}"
+    state: present
+  when: proxy_docker_py_install
+  tags: setup
+
+
+# Install fail2ban
+- name: Install fail2ban (yum)
+  ansible.builtin.yum:
+    name: "fail2ban"
+    state: present
+  when: proxy_fail2ban_setup
+  tags: fail2ban

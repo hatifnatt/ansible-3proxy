@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+[3proxy]
+enabled  = true
+port     = {{ proxy_config['proxy_port'] }},{{ proxy_config['socks_port'] }}
+filter   = 3proxy
+logpath  = {{ proxy_log_dir }}/{{ proxy_log_basename }}.????.??.??
+{% if proxy_fail2ban_destemail -%}
+destemail = {{ proxy_fail2ban_destemail }}
+{% endif %}
+{% if proxy_fail2ban_action -%}
+action = {{ proxy_fail2ban_action }}
+{% endif %}
+findtime = {{ proxy_fail2ban_findtime }}
+bantime  = {{ proxy_fail2ban_bantime }}
+maxretry = {{ proxy_fail2ban_maxretry }}
+# "ignoreip" can be an IP address, a CIDR mask or a DNS host
+ignoreip = 127.0.0.1/8 0.0.0.0 {{ proxy_fail2ban_ignoreip|join(' ') if proxy_fail2ban_ignoreip else '' }}

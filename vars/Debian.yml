@@ -1,0 +1,4 @@
+---
+proxy_user: 65534 # nobody
+proxy_group: 65534 # nogroup
+proxy_docker_py_pkg: python3-docker
